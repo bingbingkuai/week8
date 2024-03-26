@@ -125,7 +125,7 @@ pipeline {
                 mv /mnt/calculator-0.0.1-SNAPSHOT.jar .
 
                 # Build and push image using Kaniko
-                /kaniko/executor --context \`pwd\` --destination ${imageName}:${imageVersion}
+                /kaniko/executor --context `pwd` --destination ${imageName}:${imageVersion}
             '''
             }
         } else {
