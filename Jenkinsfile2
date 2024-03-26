@@ -42,26 +42,48 @@ pipeline {
     }
     
     stages {
-        stage('Build a gradle project') {
-            steps {
-                git 'https://github.com/bingbingkuai/chp5.git'
-                container('gradle') {
-                    sh '''
-                    cd Chapter08/sample1
-                    sed -i 's/minimum = 0.2/minimum = 0.1/' build.gradle
-                    sed -i '/checkstyle {/,/}/d' build.gradle 
-                    sed -i '/checkstyle/d' build.gradle 
-                    cat build.gradle
-                    chmod +x gradlew
-                    ./gradlew build
-                    mv ./build/libs/calculator-0.0.1-SNAPSHOT.jar /mnt
-                    '''
-                }
+
+      stage('Checkout code and prepare environment') {
+      steps {
+        git url: 'https://github.com/bingbingkuai/chp5.git', branch: 'master'
+        sh '''
+          cd Chapter08/sample1
+          chmod +x gradlew
+        '''
+      }
+    }
+
+    stage('Run pipeline against a gradle project - main branch') {
+     // when {
+     //  branch 'main'
+     // }
+      steps {
+         echo 'On main branch'
+
+          // A container should be created only if the tests succeed.
+        // release: image name is "calculator"
+        //release: version is 1.0
+
+            container('gradle') {
+                sh '''
+                cd Chapter08/sample1
+                    // sed -i 's/minimum = 0.2/minimum = 0.1/' build.gradle
+                    // sed -i '/checkstyle {/,/}/d' build.gradle 
+                    // sed -i '/checkstyle/d' build.gradle 
+                    // cat build.gradle
+                ./gradlew build
+                ./gradlew test
+                ./gradlew jacocoTestCoverageVerification
+                mv ./build/libs/calculator-0.0.1-SNAPSHOT.jar /mnt
+                '''
             }
-        }
-        
-        stage('Build Java Image') {
-            steps {
+      }
+    }
+
+    post { 
+        success {
+            script{
+                echo 'Create container repository'
                 container('kaniko') {
                     sh '''
                     echo 'FROM openjdk:8-jre' > Dockerfile
@@ -71,7 +93,10 @@ pipeline {
                     /kaniko/executor --context `pwd` --destination bingkuai8/hello-kaniko:1.0
                     '''
                 }
+
             }
         }
+    }
+
     }
 }
